@@ -70,7 +70,7 @@ static bool process_error(vive_priv* priv)
 
 	if(priv->gyro_q.at >= priv->gyro_q.size - 1){
 		ofq_get_mean(&priv->gyro_q, &priv->gyro_error);
-		printf("gyro error: %f, %f, %f\n", priv->gyro_error.x, priv->gyro_error.y, priv->gyro_error.z);
+                LOGD("gyro error: %f, %f, %f\n", priv->gyro_error.x, priv->gyro_error.y, priv->gyro_error.z);
 	}
 
 	return false;
@@ -192,10 +192,10 @@ static void close_device(ohmd_device* device)
 
 	// turn the display off
 	hret = hid_send_feature_report(priv->hmd_handle, vive_magic_power_off1, sizeof(vive_magic_power_off1));
-	printf("power off magic 1: %d\n", hret);
+        LOGD("power off magic 1: %d\n", hret);
 
 	hret = hid_send_feature_report(priv->hmd_handle, vive_magic_power_off2, sizeof(vive_magic_power_off2));
-	printf("power off magic 2: %d\n", hret);
+        LOGD("power off magic 2: %d\n", hret);
 
 	hid_close(priv->hmd_handle);
 	hid_close(priv->imu_handle);
@@ -213,7 +213,7 @@ static void dump_indexed_string(hid_device* device, int index)
 
 	if(hret == 0){
 		wcstombs(buffer, wbuffer, sizeof(buffer));
-		printf("indexed string 0x%02x: '%s'\n", index, buffer);
+                LOGD("indexed string 0x%02x: '%s'\n", index, buffer);
 	}
 }
 #endif
@@ -227,20 +227,20 @@ static void dump_info_string(int (*fun)(hid_device*, wchar_t*, size_t), const ch
 
 	if(hret == 0){
 		wcstombs(buffer, wbuffer, sizeof(buffer));
-		printf("%s: '%s'\n", what, buffer);
+                LOGD("%s: '%s'\n", what, buffer);
 	}
 }
 
 #if 0
 static void dumpbin(const char* label, const unsigned char* data, int length)
 {
-	printf("%s:\n", label);
+        LOGD("%s:\n", label);
 	for(int i = 0; i < length; i++){
-		printf("%02x ", data[i]);
+                LOGD("%02x ", data[i]);
 		if((i % 16) == 15)
-			printf("\n");
+                        LOGD("\n");
 	}
-	printf("\n");
+        LOGD("\n");
 }
 #endif
 
@@ -254,11 +254,11 @@ static hid_device* open_device_idx(int manufacturer, int product, int iface, int
 	hid_device* ret = NULL;
 
 	while (cur_dev) {
-		printf("%04x:%04x %s\n", manufacturer, product, cur_dev->path);
+                LOGD("%04x:%04x %s\n", manufacturer, product, cur_dev->path);
 
 		if(idx == device_index && iface == iface_cur){
 			ret = hid_open_path(cur_dev->path);
-			printf("opening\n");
+                        LOGD("opening\n");
 		}
 
 		cur_dev = cur_dev->next;
@@ -292,8 +292,10 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 	// Open the HMD device
 	priv->hmd_handle = open_device_idx(HTC_ID, VIVE_HMD, 0, 1, idx);
 
-	if(!priv->hmd_handle)
+        if(!priv->hmd_handle) {
+                LOGD("HTC device not found");
 		goto cleanup;
+        }
 
 	if(hid_set_nonblocking(priv->hmd_handle, 1) == -1){
 		ohmd_set_error(driver->ctx, "failed to set non-blocking on device");
@@ -317,23 +319,23 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 
 	// turn the display on
 	hret = hid_send_feature_report(priv->hmd_handle, vive_magic_power_on, sizeof(vive_magic_power_on));
-	printf("power on magic: %d\n", hret);
+        LOGD("power on magic: %d\n", hret);
 
 	// enable lighthouse
 	//hret = hid_send_feature_report(priv->hmd_handle, vive_magic_enable_lighthouse, sizeof(vive_magic_enable_lighthouse));
-	//printf("enable lighthouse magic: %d\n", hret);
+        //LOGD("enable lighthouse magic: %d\n", hret);
 
 	unsigned char buffer[128];
 	int bytes;
 
-	printf("Getting feature report 16 to 39\n");
+        LOGD("Getting feature report 16 to 39\n");
 	buffer[0] = 16;
 	bytes = hid_get_feature_report(priv->imu_handle, buffer, sizeof(buffer));
-	printf("got %i bytes\n", bytes);
+        LOGD("got %i bytes\n", bytes);
 	for (int i = 0; i < bytes; i++) {
-		printf("%02x ", buffer[i]);
+                LOGD("%02x ", buffer[i]);
 	}
-	printf("\n\n");
+        LOGD("\n\n");
 
 	unsigned char* packet_buffer = malloc(4096);
 
@@ -346,7 +348,7 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
  		offset += buffer[1];
 	}
 	packet_buffer[offset] = '\0';
-	//printf("Result: %s\n", packet_buffer);
+        //LOGD("Result: %s\n", packet_buffer);
 	vive_decode_config_packet(&priv->vive_config, packet_buffer, offset);
 
 	free(packet_buffer);
@@ -415,7 +417,7 @@ static void get_device_list(ohmd_driver* driver, ohmd_device_list* list)
 
 static void destroy_driver(ohmd_driver* drv)
 {
-	LOGD("shutting down HTC Vive driver");
+        LOGD("Shutting down HTC Vive driver");
 	free(drv);
 }
 
@@ -431,5 +433,5 @@ ohmd_driver* ohmd_create_htc_vive_drv(ohmd_context* ctx)
 	drv->destroy = destroy_driver;
 	drv->ctx = ctx;
 
-	return drv;
+        return drv;
 }
