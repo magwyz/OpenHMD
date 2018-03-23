@@ -320,8 +320,11 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 	dump_info_string(hid_get_serial_number_string, "serial number", priv->hmd_handle);
 
 	// turn the display on
-	hret = hid_send_feature_report(priv->hmd_handle, vive_magic_power_on, sizeof(vive_magic_power_on));
-        LOGD("power on magic: %d\n", hret);
+        LOGD("Power on magic");
+        if (hid_send_feature_report(priv->hmd_handle, vive_magic_power_on, sizeof(vive_magic_power_on)) == -1) {
+            LOGE("Could not send power on signal: %s",  hid_error(priv->hmd_handle));
+            goto cleanup;
+        }
 
 	// enable lighthouse
 	//hret = hid_send_feature_report(priv->hmd_handle, vive_magic_enable_lighthouse, sizeof(vive_magic_enable_lighthouse));
@@ -330,14 +333,17 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 	unsigned char buffer[128];
 	int bytes;
 
-        LOGD("Getting feature report 16 to 39\n");
+        LOGD("Getting feature report 16 to 39");
 	buffer[0] = 16;
 	bytes = hid_get_feature_report(priv->imu_handle, buffer, sizeof(buffer));
         LOGD("got %i bytes\n", bytes);
+        if (bytes == -1) {
+            LOGE("Could not get feature report: %s", hid_error(priv->hmd_handle));
+            goto cleanup;
+        }
 	for (int i = 0; i < bytes; i++) {
                 LOGD("%02x ", buffer[i]);
 	}
-        LOGD("\n\n");
 
 	unsigned char* packet_buffer = malloc(4096);
 
