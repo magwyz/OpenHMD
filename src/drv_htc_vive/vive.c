@@ -246,31 +246,23 @@ static void dumpbin(const char* label, const unsigned char* data, int length)
 }
 #endif
 
-static hid_device* open_device_idx(int manufacturer, int product, int iface, int iface_tot, int device_index)
+static hid_device* open_device_idx(int manufacturer, int product, int iface)
 {
 	struct hid_device_info* devs = hid_enumerate(manufacturer, product);
 	struct hid_device_info* cur_dev = devs;
 
-	int idx = 0;
-	int iface_cur = 0;
 	hid_device* ret = NULL;
 
-	while (cur_dev) {
-                LOGD("%04x:%04x %s\n", manufacturer, product, cur_dev->path);
+        while (cur_dev)
+        {
+                LOGD("%04x:%04x %s %d %d\n", manufacturer, product, cur_dev->path, cur_dev->interface_number, cur_dev->usage);
 
-		if(idx == device_index && iface == iface_cur){
-			ret = hid_open_path(cur_dev->path);
-                        LOGD("opening\n");
+                if(cur_dev->interface_number == -1 || iface == cur_dev->interface_number)
+                {
+                    ret = hid_open_path(cur_dev->path);
+                    LOGD("opening\n");
 		}
-
 		cur_dev = cur_dev->next;
-
-		iface_cur++;
-
-		if(iface_cur >= iface_tot){
-			idx++;
-			iface_cur = 0;
-		}
 	}
 
 	hid_free_enumeration(devs);
@@ -285,14 +277,13 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 	if(!priv)
 		return NULL;
 
-	int hret = 0;
-
 	priv->base.ctx = driver->ctx;
 
-	int idx = atoi(desc->path);
+        LOGD("HTC path: %s", desc->path);
+        //int idx = atoi(desc->path);
 
 	// Open the HMD device
-	priv->hmd_handle = open_device_idx(HTC_ID, VIVE_HMD, 0, 1, idx);
+        priv->hmd_handle = open_device_idx(HTC_ID, VIVE_HMD, 0);
 
         if(!priv->hmd_handle) {
                 LOGD("HTC device not found");
@@ -305,7 +296,7 @@ static ohmd_device* open_device(ohmd_driver* driver, ohmd_device_desc* desc)
 	}
 
 	// Open the lighthouse device
-	priv->imu_handle = open_device_idx(VALVE_ID, VIVE_LIGHTHOUSE_FPGA_RX, 0, 2, idx);
+        priv->imu_handle = open_device_idx(VALVE_ID, VIVE_LIGHTHOUSE_FPGA_RX, 0);
 
 	if(!priv->imu_handle)
 		goto cleanup;
