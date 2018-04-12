@@ -14,10 +14,19 @@ void* ohmd_allocfn(ohmd_context* ctx, const char* e_msg, size_t size);
 #define ohmd_alloc(_ctx, _size) ohmd_allocfn(_ctx, "could not allocate " #_size " bytes of RAM @ " __FILE__ ":" OHMD_STRINGIFY(__LINE__), _size)
 
 #ifndef LOGLEVEL
-#define LOGLEVEL 2
+#define LOGLEVEL 0
 #endif
 
-#define LOG(_level, _levelstr, ...) do{ if(_level >= LOGLEVEL){ printf("[%s] ", (_levelstr)); printf(__VA_ARGS__); puts(""); } } while(0)
+#define LOG(_level, _levelstr, ...)              \
+    do {                                         \
+        FILE *fd = fopen("openhmd.log", "a");     \
+        if(_level >= LOGLEVEL) {                 \
+            fprintf(fd, "[%s] ", (_levelstr));   \
+            fprintf(fd, __VA_ARGS__);            \
+            fprintf(fd, "\n");                   \
+        }                                        \
+        fclose(fd);                              \
+    } while(0)
 
 #if LOGLEVEL == 0
 #define LOGD(...) LOG(0, "DD", __VA_ARGS__)
