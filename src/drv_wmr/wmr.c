@@ -180,7 +180,7 @@ static hid_device* open_device_idx(int manufacturer, int product, int iface, int
 
 		if(idx == device_index && iface == iface_cur){
 			ret = hid_open_path(cur_dev->path);
-                        LOGD("opening\n");
+                        LOGD("opening %p\n", ret);
 		}
 
 		cur_dev = cur_dev->next;
@@ -203,9 +203,13 @@ static int config_command_sync(hid_device* hmd_imu, unsigned char type,
 {
 	unsigned char cmd[64] = { 0x02, type };
 
-	hid_write(hmd_imu, cmd, sizeof(cmd));
+        int ret = hid_write(hmd_imu, cmd, sizeof(cmd));
+        LOGD("hid_write ret: %d", ret);
+        LOGD("error: %ls", hid_error(hmd_imu));
 	do {
+                LOGD("hid_read before len: %d", len);
 		int size = hid_read(hmd_imu, buf, len);
+                LOGD("hid_read size: %d", size);
 		if (size == -1)
 			return -1;
 		if (buf[0] == 0x02)
@@ -222,6 +226,7 @@ int read_config_part(wmr_priv *priv, unsigned char type,
 	int offset = 0;
 	int size;
 
+        LOGD("read_config_part");
 	size = config_command_sync(priv->hmd_imu, 0x0b, buf, sizeof(buf));
 	if (size != 33 || buf[0] != 0x02) {
                 LOGD("Failed to issue command 0b: %02x %02x %02x\n",
@@ -259,6 +264,7 @@ unsigned char *read_config(wmr_priv *priv)
 	unsigned char *data;
 	int size, data_size;
 
+        LOGD("read_config");
 	size = read_config_part(priv, 0x06, meta, sizeof(meta));
 	if (size == -1)
 		return NULL;
