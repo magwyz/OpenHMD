@@ -201,10 +201,10 @@ static hid_device* open_device_idx(int manufacturer, int product, int iface, int
 static int config_command_sync(hid_device* hmd_imu, unsigned char type,
 			       unsigned char* buf, int len)
 {
-	unsigned char cmd[64] = { 0x02, type };
+        unsigned char cmd[64] = { 0x02, type };
 
         int ret = hid_write(hmd_imu, cmd, sizeof(cmd));
-        LOGD("hid_write ret: %d", ret);
+        LOGD("hid_write ret: %d %d", ret, sizeof(cmd));
         LOGD("error: %ls", hid_error(hmd_imu));
 	do {
                 LOGD("hid_read before len: %d", len);
